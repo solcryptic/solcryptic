@@ -2,9 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    appDir: false // Using pages directory for now
-  },
   
   // Environment variables for client-side
   env: {
@@ -16,15 +13,6 @@ const nextConfig = {
   // Image optimization
   images: {
     domains: ['localhost'],
-    formats: ['image/webp', 'image/avif']
-  },
-
-  // API routes configuration
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb'
-    },
-    responseLimit: false
   },
 
   // Security headers
