@@ -1,0 +1,270 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(BROKER)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Audit logs
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Company {
+  id          String      @id @default(cuid())
+  name        String
+  type        CompanyType
+  email       String
+  phone       String
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  website     String?
+  mcNumber    String?     @unique
+  dotNumber   String?     @unique
+  isVerified  Boolean     @default(false)
+  riskScore   Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  users       User[]
+  carriers    Carrier[]
+  documents   Document[]
+  flagReports FlagReport[]
+
+  @@map("companies")
+}
+
+model Carrier {
+  id                String            @id @default(cuid())
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id])
+  mcNumber          String            @unique
+  dotNumber         String            @unique
+  legalName         String
+  dbaName           String?
+  operatingStatus   OperatingStatus
+  authorizedStatus  AuthorizedStatus
+  powerUnits        Int               @default(0)
+  driverCount       Int               @default(0)
+  saferScore        Float?
+  basicScores       Json? // Store BASIC scores as JSON
+  phoneNumber       String
+  email             String
+  website           String?
+  equipmentTypes    String[] // Array of equipment types
+  operatingAreas    String[] // Array of states/regions
+  insuranceCarrier  String?
+  insurancePolicyNo String?
+  insuranceExpiry   DateTime?
+  lastFmcsaUpdate   DateTime?
+  verificationStatus VerificationStatus @default(PENDING)
+  riskLevel         RiskLevel         @default(LOW)
+  riskScore         Float             @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  documents       Document[]
+  verifications   Verification[]
+  flagReports     FlagReport[]
+  inspectionHistory InspectionRecord[]
+
+  @@map("carriers")
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  carrierId   String?
+  companyId   String?
+  carrier     Carrier?     @relation(fields: [carrierId], references: [id])
+  company     Company?     @relation(fields: [companyId], references: [id])
+  type        DocumentType
+  filename    String
+  originalName String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  status      DocumentStatus @default(PENDING)
+  ocrData     Json? // Extracted text and data from OCR
+  verifiedData Json? // Verified fields after matching
+  uploadedAt  DateTime     @default(now())
+  verifiedAt  DateTime?
+  expiresAt   DateTime?
+
+  @@map("documents")
+}
+
+model Verification {
+  id          String             @id @default(cuid())
+  carrierId   String
+  carrier     Carrier            @relation(fields: [carrierId], references: [id])
+  type        VerificationType
+  status      VerificationStatus
+  method      String // "FMCSA_API", "MANUAL", "OCR", etc.
+  data        Json // Verification results
+  performedBy String? // User ID who performed manual verification
+  performedAt DateTime           @default(now())
+  expiresAt   DateTime?
+
+  @@map("verifications")
+}
+
+model InspectionRecord {
+  id            String   @id @default(cuid())
+  carrierId     String
+  carrier       Carrier  @relation(fields: [carrierId], references: [id])
+  inspectionId  String   @unique
+  date          DateTime
+  state         String
+  level         String
+  totalViolations Int    @default(0)
+  oosViolations  Int     @default(0)
+  hazmatPlacardReq Boolean @default(false)
+  vehicleInspected Boolean @default(false)
+  driverInspected Boolean @default(false)
+  timeWeight     Float?
+  basicScores    Json? // Updated BASIC scores after inspection
+  createdAt      DateTime @default(now())
+
+  @@map("inspection_records")
+}
+
+model FlagReport {
+  id          String     @id @default(cuid())
+  carrierId   String?
+  companyId   String?
+  carrier     Carrier?   @relation(fields: [carrierId], references: [id])
+  company     Company?   @relation(fields: [companyId], references: [id])
+  reportedBy  String // User ID
+  reason      FlagReason
+  description String
+  status      FlagStatus @default(OPEN)
+  severity    String     @default("MEDIUM")
+  createdAt   DateTime   @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  @@map("flag_reports")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  resource  String // "CARRIER", "DOCUMENT", "VERIFICATION", etc.
+  resourceId String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  BROKER
+  CARRIER
+  VERIFIER
+}
+
+enum CompanyType {
+  BROKER
+  CARRIER
+  SHIPPER
+}
+
+enum OperatingStatus {
+  AUTHORIZED
+  NOT_AUTHORIZED
+  OUT_OF_SERVICE
+  CONDITIONAL
+}
+
+enum AuthorizedStatus {
+  AUTHORIZED
+  NOT_AUTHORIZED
+  SUSPENDED
+  REVOKED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DocumentType {
+  W9
+  COI // Certificate of Insurance
+  AUTHORITY_LETTER
+  DISPATCH_CONTACT
+  OPERATING_AGREEMENT
+  INSURANCE_POLICY
+  SAFETY_AUDIT
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum VerificationType {
+  FMCSA_DATA
+  INSURANCE
+  DOCUMENTS
+  IDENTITY
+  PHONE_EMAIL
+  SAFETY_RECORD
+}
+
+enum FlagReason {
+  SUSPICIOUS_ACTIVITY
+  DOCUMENT_FRAUD
+  IDENTITY_MISMATCH
+  DOUBLE_BROKERING
+  SAFETY_VIOLATION
+  INSURANCE_ISSUE
+  OTHER
+}
+
+enum FlagStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
