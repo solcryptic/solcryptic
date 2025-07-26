@@ -245,7 +245,7 @@ class DocumentVerificationService {
     documentType: string,
     fmcsaData: FMCSACarrierData
   ): Promise<DocumentVerificationResult> {
-    const result: DocumentVerificationResult = {
+    let result: DocumentVerificationResult = {
       isValid: false,
       confidence: 0,
       matchedFields: [],
@@ -253,9 +253,6 @@ class DocumentVerificationService {
       extractedData: documentData,
       issues: []
     };
-
-    let matchCount = 0;
-    let totalChecks = 0;
 
     switch (documentType) {
       case 'W9':

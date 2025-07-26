@@ -126,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Document upload error:', error);
     return res.status(500).json({ 
       error: 'Upload failed',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Please try again later'
+      message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Please try again later'
     });
   }
 }
@@ -179,7 +179,7 @@ async function processDocumentAsync(documentId: string, filePath: string, docume
           misMatchedFields: verificationResult.misMatchedFields,
           issues: verificationResult.issues,
           verifiedAt: new Date()
-        } : null,
+        } as any : null,
         verifiedAt: documentStatus === 'VERIFIED' ? new Date() : null
       }
     });
@@ -195,8 +195,8 @@ async function processDocumentAsync(documentId: string, filePath: string, docume
           data: {
             documentId,
             documentType,
-            ocrResult,
-            verificationResult,
+            ocrResult: ocrResult as any,
+            verificationResult: verificationResult as any,
             processedAt: new Date()
           }
         }
@@ -217,7 +217,7 @@ async function processDocumentAsync(documentId: string, filePath: string, docume
       data: {
         status: 'REJECTED',
         ocrData: {
-          error: error.message,
+          error: (error as Error).message,
           processedAt: new Date()
         }
       }
@@ -273,17 +273,20 @@ async function checkAndUpdateCarrierVerificationStatus(carrierId: string) {
       }
     });
 
-    // Update company verification status
-    await prisma.company.update({
-      where: { 
-        carriers: {
-          some: { id: carrierId }
-        }
-      },
-      data: {
-        isVerified: newVerificationStatus === 'VERIFIED'
-      }
+    // Update company verification status - find the company first
+    const carrierWithCompany = await prisma.carrier.findUnique({
+      where: { id: carrierId },
+      select: { companyId: true }
     });
+
+    if (carrierWithCompany) {
+      await prisma.company.update({
+        where: { id: carrierWithCompany.companyId },
+        data: {
+          isVerified: newVerificationStatus === 'VERIFIED'
+        }
+      });
+    }
 
     console.log(`Carrier ${carrierId} verification status updated to: ${newVerificationStatus}`);
 

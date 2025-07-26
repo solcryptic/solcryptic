@@ -110,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       verificationSummary: {
         isRegistered: !!existingCarrier,
         isVerified: existingCarrier?.verificationStatus === 'VERIFIED',
-        hasActiveFlags: existingCarrier?.flagReports?.length > 0,
+        hasActiveFlags: (existingCarrier?.flagReports?.length || 0) > 0,
         lastVerification: existingCarrier?.verifications?.[0]?.performedAt,
         documentCount: existingCarrier?.documents?.length || 0
       },
@@ -124,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Carrier lookup error:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Please try again later'
+      message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Please try again later'
     });
   }
 }

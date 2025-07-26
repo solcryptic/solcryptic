@@ -182,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'VERIFIED',
           method: 'FMCSA_API',
           data: {
-            fmcsaData,
+            fmcsaData: fmcsaData as any,
             verificationDate: new Date(),
             riskScore,
             inspectionCount: inspectionHistory.length
@@ -253,7 +253,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Carrier registration error:', error);
     return res.status(500).json({ 
       error: 'Registration failed',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Please try again later'
+      message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Please try again later'
     });
   }
 }

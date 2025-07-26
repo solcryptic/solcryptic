@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Error fetching carrier details:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Failed to fetch carrier details'
+      message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Failed to fetch carrier details'
     });
   }
 }
@@ -121,7 +121,7 @@ function getDocumentStatus(documents: any[], documentType: string): 'VERIFIED' |
 function isDocumentationComplete(documents: any[]): boolean {
   const requiredDocs = ['W9', 'COI', 'AUTHORITY_LETTER'];
   return requiredDocs.every(type => 
-    documents.some(doc => doc.type === type && doc.status === 'VERIFIED')
+    documents.some((doc: any) => doc.type === type && doc.status === 'VERIFIED')
   );
 }
 
@@ -171,7 +171,7 @@ function analyzeRiskFactors(carrier: any): any[] {
   // Documentation risk
   const requiredDocs = ['W9', 'COI', 'AUTHORITY_LETTER'];
   const missingDocs = requiredDocs.filter(type => 
-    !carrier.documents.some(doc => doc.type === type && doc.status === 'VERIFIED')
+    !carrier.documents.some((doc: any) => doc.type === type && doc.status === 'VERIFIED')
   );
 
   if (missingDocs.length > 0) {
@@ -256,7 +256,7 @@ function generateCarrierRecommendations(carrier: any): any[] {
   // Documentation recommendations
   const requiredDocs = ['W9', 'COI', 'AUTHORITY_LETTER'];
   const missingDocs = requiredDocs.filter(type => 
-    !carrier.documents.some(doc => doc.type === type && doc.status === 'VERIFIED')
+    !carrier.documents.some((doc: any) => doc.type === type && doc.status === 'VERIFIED')
   );
 
   if (missingDocs.length > 0) {

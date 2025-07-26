@@ -36,6 +36,7 @@ export interface FMCSACarrierData {
   insuranceExpirationDate?: string;
   equipmentTypes?: string[];
   operatingAreas?: string[];
+  website?: string;
 }
 
 export interface FMCSAInspectionData {
